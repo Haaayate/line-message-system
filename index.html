@@ -825,7 +825,6 @@
             data.forEach((liver, index) => {
                 const card = document.createElement('div');
                 card.className = 'liver-card';
-                card.onclick = () => selectLiver(liver, card);
                 
                 const managerClass = liver.manager === '管理人1' ? 'manager-1' : 'manager-2';
                 
@@ -835,6 +834,11 @@
                     <div class="liver-info">目標値: ${liver.targetValue || '未設定'}</div>
                     <div class="manager-badge ${managerClass}">${liver.manager || '未設定'}</div>
                 `;
+                
+                // イベントリスナーを追加
+                card.addEventListener('click', function() {
+                    selectLiver(liver, card);
+                });
                 
                 container.appendChild(card);
             });
