@@ -185,6 +185,16 @@
             box-shadow: 0 8px 25px rgba(0, 114, 255, 0.2);
         }
         
+        .liver-card.sent {
+            opacity: 0.5;
+            background: #f0f0f0;
+            border-color: #ddd;
+        }
+        
+        .liver-card.hidden {
+            display: none;
+        }
+        
         .liver-card .liver-name {
             font-size: 1.3em;
             font-weight: 600;
@@ -482,6 +492,29 @@
             <!-- Step 2: ライバー選択セクション -->
             <div class="section" id="liverSection" style="display: none;">
                 <h2>👥 Step 2: ライバー選択</h2>
+                
+                <!-- 管理人タブ -->
+                <div class="manager-tabs" id="managerTabs">
+                    <button class="tab-btn active" data-manager="all">全て (<span id="countAll">0</span>)</button>
+                    <button class="tab-btn" data-manager="管理人1">管理人1 (<span id="countManager1">0</span>)</button>
+                    <button class="tab-btn" data-manager="管理人2">管理人2 (<span id="countManager2">0</span>)</button>
+                </div>
+                
+                <!-- 送信管理ツール -->
+                <div class="management-tools">
+                    <div class="tool-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="hideSentLivers">
+                            <span class="checkmark"></span>
+                            送信済みを非表示
+                        </label>
+                        <button class="btn btn-small" onclick="resetSentStatus()">🔄 送信状況リセット</button>
+                    </div>
+                    <div class="status-info">
+                        送信済み: <span id="sentCount">0</span>件 / 未送信: <span id="unsentCount">0</span>件
+                    </div>
+                </div>
+                
                 <p style="color: #666; margin-bottom: 20px;">送信したいライバーをクリックして選択してください</p>
                 <div class="liver-select" id="liverSelect">
                     <!-- ライバーカードがここに表示されます -->
@@ -549,6 +582,8 @@
         let spreadsheetData = [];
         let selectedLiver = null;
         let currentStep = 1;
+        let sentLivers = new Set(); // 送信済みライバーを管理
+        let currentManagerFilter = 'all'; // 現在のタブフィルター
         
         // ページ読み込み時に保存されたデータをチェック
         window.onload = function() {
@@ -556,7 +591,23 @@
             loadSavedTemplate();
             loadTemplateOptions();
             checkSelectedTemplate();
+            loadSentStatus();
+            setupEventListeners();
         };
+        
+        function setupEventListeners() {
+            // タブ切り替え
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('tab-btn')) {
+                    switchManagerTab(e.target.dataset.manager);
+                }
+            });
+            
+            // 送信済み非表示チェックボックス
+            document.getElementById('hideSentLivers').addEventListener('change', function() {
+                updateLiverDisplay();
+            });
+        }
         
         function checkSavedData() {
             const savedData = JSON.parse(sessionStorage.getItem('spreadsheetData') || 'null');
@@ -825,24 +876,39 @@
             data.forEach((liver, index) => {
                 const card = document.createElement('div');
                 card.className = 'liver-card';
+                card.dataset.liverId = liver.liverName;
+                card.dataset.manager = liver.manager;
                 
                 const managerClass = liver.manager === '管理人1' ? 'manager-1' : 'manager-2';
+                const isSent = sentLivers.has(liver.liverName);
                 
                 card.innerHTML = `
+                    <div class="sent-checkbox ${isSent ? 'checked' : ''}" data-liver="${liver.liverName}"></div>
                     <div class="liver-name">${liver.liverName}</div>
                     <div class="liver-info">7月ダイヤモンド: ${liver.julyDiamonds || '未設定'}</div>
                     <div class="liver-info">目標値: ${liver.targetValue || '未設定'}</div>
                     <div class="manager-badge ${managerClass}">${liver.manager || '未設定'}</div>
                 `;
                 
-                // イベントリスナーを追加
-                card.addEventListener('click', function() {
-                    selectLiver(liver, card);
+                // ライバーカードクリックイベント
+                card.addEventListener('click', function(e) {
+                    if (!e.target.classList.contains('sent-checkbox')) {
+                        selectLiver(liver, card);
+                    }
+                });
+                
+                // 送信済みチェックボックスイベント
+                const checkbox = card.querySelector('.sent-checkbox');
+                checkbox.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    toggleSentStatus(liver.liverName);
                 });
                 
                 container.appendChild(card);
             });
             
+            updateManagerTabs();
+            updateLiverDisplay();
             document.getElementById('liverSection').style.display = 'block';
         }
         
@@ -914,6 +980,11 @@
                 setTimeout(() => {
                     copySuccess.classList.remove('show');
                 }, 2000);
+                
+                // 送信済みとしてマーク
+                if (selectedLiver) {
+                    markAsSent(selectedLiver.liverName);
+                }
                 
                 completeStep(4);
                 showSuccess('メッセージをコピーしました！LINEに貼り付けて送信してください。');
@@ -996,6 +1067,108 @@
             container.insertBefore(successDiv, container.firstChild);
             
             setTimeout(() => successDiv.remove(), 3000);
+        }
+        
+        // 管理人タブ関連機能
+        function switchManagerTab(manager) {
+            // タブの見た目を更新
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-manager="${manager}"]`).classList.add('active');
+            
+            currentManagerFilter = manager;
+            updateLiverDisplay();
+        }
+        
+        function updateManagerTabs() {
+            const allCount = spreadsheetData.length;
+            const manager1Count = spreadsheetData.filter(liver => liver.manager === '管理人1').length;
+            const manager2Count = spreadsheetData.filter(liver => liver.manager === '管理人2').length;
+            
+            document.getElementById('countAll').textContent = allCount;
+            document.getElementById('countManager1').textContent = manager1Count;
+            document.getElementById('countManager2').textContent = manager2Count;
+        }
+        
+        function updateLiverDisplay() {
+            const hideSent = document.getElementById('hideSentLivers').checked;
+            const cards = document.querySelectorAll('.liver-card');
+            
+            let sentCount = 0;
+            let unsentCount = 0;
+            
+            cards.forEach(card => {
+                const liverId = card.dataset.liverId;
+                const manager = card.dataset.manager;
+                const isSent = sentLivers.has(liverId);
+                
+                // 送信済み状態の表示更新
+                card.classList.toggle('sent', isSent);
+                
+                // フィルタリング
+                let shouldShow = true;
+                
+                // 管理人フィルター
+                if (currentManagerFilter !== 'all' && manager !== currentManagerFilter) {
+                    shouldShow = false;
+                }
+                
+                // 送信済み非表示フィルター
+                if (hideSent && isSent) {
+                    shouldShow = false;
+                }
+                
+                card.classList.toggle('hidden', !shouldShow);
+                
+                // カウント更新
+                if (isSent) {
+                    sentCount++;
+                } else {
+                    unsentCount++;
+                }
+            });
+            
+            // 統計情報更新
+            document.getElementById('sentCount').textContent = sentCount;
+            document.getElementById('unsentCount').textContent = unsentCount;
+        }
+        
+        function toggleSentStatus(liverName) {
+            if (sentLivers.has(liverName)) {
+                sentLivers.delete(liverName);
+            } else {
+                sentLivers.add(liverName);
+            }
+            
+            saveSentStatus();
+            updateLiverDisplay();
+        }
+        
+        function markAsSent(liverName) {
+            sentLivers.add(liverName);
+            saveSentStatus();
+            updateLiverDisplay();
+        }
+        
+        function resetSentStatus() {
+            if (confirm('送信状況をリセットしますか？\n全てのライバーが未送信状態になります。')) {
+                sentLivers.clear();
+                saveSentStatus();
+                updateLiverDisplay();
+                showSuccess('送信状況をリセットしました');
+            }
+        }
+        
+        function saveSentStatus() {
+            sessionStorage.setItem('sentLivers', JSON.stringify([...sentLivers]));
+        }
+        
+        function loadSentStatus() {
+            const saved = sessionStorage.getItem('sentLivers');
+            if (saved) {
+                sentLivers = new Set(JSON.parse(saved));
+            }
         }
     </script>
 </body>
