@@ -462,10 +462,10 @@
             <div class="section" id="dataSection">
                 <h2>📊 Step 1: スプレッドシートデータ読み込み</h2>
                 <div class="form-group">
-                    <label for="spreadsheetUrl">スプレッドシートURL（CSV形式）</label>
-                    <input type="url" id="spreadsheetUrl" placeholder="https://docs.google.com/spreadsheets/d/.../export?format=csv&gid=0">
+                    <label for="spreadsheetUrl">スプレッドシートURL</label>
+                    <input type="url" id="spreadsheetUrl" placeholder="https://docs.google.com/spreadsheets/d/1p-f2b7BpL2dB7QdL8IgbfooedVdga5rpyfN1gG-dvKo/edit?gid=0#gid=0">
                     <small style="color: #666; margin-top: 5px; display: block;">
-                        スプレッドシートを「ウェブに公開」→「CSV」で公開してURLを取得してください
+                        スプレッドシートのURLをそのまま貼り付けてください（編集URLでも自動変換されます）
                     </small>
                 </div>
                 <button class="btn" onclick="loadSpreadsheetData()">データを読み込み</button>
@@ -672,23 +672,35 @@
                 return;
             }
             
+            // 正しいCSV URLに変換
+            let csvUrl = url;
+            if (url.includes('/edit')) {
+                const spreadsheetId = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+                if (spreadsheetId) {
+                    csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId[1]}/export?format=csv&gid=0`;
+                    console.log('Converted URL:', csvUrl);
+                }
+            }
+            
             document.getElementById('loadingSection').style.display = 'block';
             
             try {
-                const response = await fetch(url);
+                const response = await fetch(csvUrl);
                 if (!response.ok) {
-                    throw new Error('データの取得に失敗しました');
+                    throw new Error(`データの取得に失敗しました (${response.status})`);
                 }
                 
                 const csvText = await response.text();
-                const parsedData = parseCSV(csvText);
+                console.log('CSV Raw Data (first 1000 chars):', csvText.substring(0, 1000));
+                
+                const parsedData = parseCSVImproved(csvText);
                 
                 if (parsedData.length === 0) {
-                    throw new Error('有効なデータが見つかりませんでした');
+                    throw new Error('有効なライバーデータが見つかりませんでした');
                 }
                 
                 spreadsheetData = parsedData;
-                saveData(parsedData); // データを保存
+                saveData(parsedData);
                 displayLivers(parsedData);
                 
                 // ステップ進行
@@ -705,68 +717,105 @@
             }
         }
         
-        function parseCSV(csvText) {
-            console.log('CSV Raw Data:', csvText.substring(0, 500)); // デバッグ用
+        function parseCSVImproved(csvText) {
+            console.log('Starting CSV parsing...');
             
-            const lines = csvText.split('\n').filter(line => line.trim());
+            // CSVテキストを行に分割
+            const lines = csvText.split(/\r?\n/);
             const data = [];
             
-            console.log('Total lines:', lines.length); // デバッグ用
+            console.log('Total lines found:', lines.length);
+            console.log('First 5 lines:', lines.slice(0, 5));
             
-            // ヘッダー行をスキップして2行目から開始
+            // 各行を処理（ヘッダー行を除く）
             for (let i = 1; i < lines.length; i++) {
-                const cells = parseCSVLine(lines[i]);
+                const line = lines[i].trim();
                 
-                console.log(`Row ${i+1}:`, cells); // デバッグ用
+                // 空行やJavaScriptコードのような行をスキップ
+                if (!line || line.includes('function') || line.includes('return') || line.includes('var ') || line.length < 5) {
+                    continue;
+                }
                 
-                // D列(インデックス3)からライバー名を取得
-                if (cells.length > 3) {
-                    const liverName = cells[3] ? cells[3].trim() : '';
-                    const manager = cells.length > 4 && cells[4] ? cells[4].trim() : '';
-                    const julyDiamonds = cells.length > 9 && cells[9] ? cells[9].trim() : '';
-                    const targetValue = cells.length > 12 && cells[12] ? cells[12].trim() : '';
+                try {
+                    const cells = parseCSVLineImproved(line);
                     
-                    // ライバー名が存在し、空でない場合のみ追加
-                    if (liverName && liverName.length > 0) {
-                        console.log('Adding liver:', { liverName, manager, julyDiamonds, targetValue }); // デバッグ用
+                    // 最低限の列数チェック
+                    if (cells.length >= 4) {
+                        // D列（インデックス3）のライバー名をチェック
+                        const liverName = cells[3] ? cells[3].trim() : '';
                         
-                        data.push({
-                            liverName,
-                            manager,
-                            julyDiamonds,
-                            targetValue
-                        });
+                        // ライバー名が有効かチェック（日本語、英数字、記号のみ）
+                        if (liverName && 
+                            liverName.length > 0 && 
+                            liverName.length < 50 && 
+                            !liverName.includes('function') &&
+                            !liverName.includes('return') &&
+                            !liverName.includes('=') &&
+                            !/^[a-zA-Z_$][a-zA-Z0-9_$]*\s*\(/.test(liverName)) {
+                            
+                            const manager = cells.length > 4 && cells[4] ? cells[4].trim() : '';
+                            const julyDiamonds = cells.length > 9 && cells[9] ? cells[9].trim() : '';
+                            const targetValue = cells.length > 12 && cells[12] ? cells[12].trim() : '';
+                            
+                            console.log(`Row ${i+1} - Valid liver found:`, {
+                                liverName, 
+                                manager, 
+                                julyDiamonds, 
+                                targetValue
+                            });
+                            
+                            data.push({
+                                liverName,
+                                manager,
+                                julyDiamonds,
+                                targetValue
+                            });
+                        }
                     }
+                } catch (error) {
+                    console.log(`Error parsing line ${i+1}:`, error.message);
+                    continue;
                 }
             }
             
-            console.log('Final parsed data:', data); // デバッグ用
+            console.log('Final parsed data:', data);
             return data;
         }
         
-        function parseCSVLine(line) {
-            const cells = [];
+        function parseCSVLineImproved(line) {
+            const result = [];
             let current = '';
             let inQuotes = false;
+            let i = 0;
             
-            for (let i = 0; i < line.length; i++) {
+            while (i < line.length) {
                 const char = line[i];
                 
                 if (char === '"') {
-                    inQuotes = !inQuotes;
+                    if (inQuotes && line[i + 1] === '"') {
+                        // エスケープされたクォート
+                        current += '"';
+                        i++; // 次のクォートもスキップ
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
                 } else if (char === ',' && !inQuotes) {
-                    cells.push(current);
+                    result.push(current.trim());
                     current = '';
                 } else {
                     current += char;
                 }
+                i++;
             }
             
-            // 最後のセルを追加
-            cells.push(current);
+            // 最後のフィールドを追加
+            result.push(current.trim());
             
             // クォートを削除
-            return cells.map(cell => cell.replace(/^"|"$/g, ''));
+            return result.map(cell => {
+                let cleaned = cell.replace(/^"/, '').replace(/"$/, '');
+                return cleaned;
+            });
         }
         
         function displayLivers(data) {
