@@ -416,6 +416,11 @@
 <body>
     <div class="container">
         <div class="header">
+            <div style="position: absolute; top: 20px; right: 30px;">
+                <a href="templates.html" style="color: white; text-decoration: none; background: rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 25px; font-weight: 600; transition: all 0.3s ease;">
+                    📝 テンプレート管理
+                </a>
+            </div>
             <h1>📱 公式LINE個別送信システム</h1>
             <p>ライバー選択→メッセージ生成→コピー送信</p>
         </div>
@@ -486,6 +491,18 @@
             <!-- Step 3: メッセージテンプレート設定 -->
             <div class="section" id="templateSection" style="display: none;">
                 <h2>✉️ Step 3: メッセージテンプレート設定</h2>
+                
+                <!-- テンプレート選択 -->
+                <div class="form-group">
+                    <label for="templateSelect">保存済みテンプレート</label>
+                    <select id="templateSelect" onchange="loadSelectedTemplate()">
+                        <option value="">-- テンプレートを選択 --</option>
+                    </select>
+                    <small style="color: #666; margin-top: 5px; display: block;">
+                        <a href="templates.html" style="color: #0072ff;">📝 テンプレート管理画面</a>で新しいテンプレートを作成・編集できます
+                    </small>
+                </div>
+                
                 <div class="form-group">
                     <label for="messageTemplate">メッセージテンプレート</label>
                     <textarea id="messageTemplate" placeholder="メッセージテンプレートを入力してください">
@@ -537,6 +554,8 @@
         window.onload = function() {
             checkSavedData();
             loadSavedTemplate();
+            loadTemplateOptions();
+            checkSelectedTemplate();
         };
         
         function checkSavedData() {
@@ -595,6 +614,53 @@
             const savedTemplate = sessionStorage.getItem('messageTemplate');
             if (savedTemplate) {
                 document.getElementById('messageTemplate').value = savedTemplate;
+            }
+        }
+        
+        function loadTemplateOptions() {
+            const savedTemplates = localStorage.getItem('messageTemplates');
+            const templateSelect = document.getElementById('templateSelect');
+            
+            // 既存のオプションをクリア（最初のオプション以外）
+            templateSelect.innerHTML = '<option value="">-- テンプレートを選択 --</option>';
+            
+            if (savedTemplates) {
+                const templates = JSON.parse(savedTemplates);
+                templates.forEach(template => {
+                    const option = document.createElement('option');
+                    option.value = template.id;
+                    option.textContent = template.name;
+                    templateSelect.appendChild(option);
+                });
+            }
+        }
+        
+        function loadSelectedTemplate() {
+            const templateSelect = document.getElementById('templateSelect');
+            const selectedId = templateSelect.value;
+            
+            if (!selectedId) return;
+            
+            const savedTemplates = localStorage.getItem('messageTemplates');
+            if (savedTemplates) {
+                const templates = JSON.parse(savedTemplates);
+                const selectedTemplate = templates.find(t => t.id == selectedId);
+                
+                if (selectedTemplate) {
+                    document.getElementById('messageTemplate').value = selectedTemplate.content;
+                    saveTemplate(); // 選択したテンプレートを保存
+                }
+            }
+        }
+        
+        function checkSelectedTemplate() {
+            // テンプレート管理画面から戻ってきた場合の処理
+            const selectedTemplate = sessionStorage.getItem('selectedTemplate');
+            if (selectedTemplate) {
+                document.getElementById('messageTemplate').value = selectedTemplate;
+                saveTemplate();
+                sessionStorage.removeItem('selectedTemplate'); // 使用後に削除
+                showSuccess('テンプレートを適用しました');
             }
         }
         
@@ -730,6 +796,7 @@
             
             // テンプレートセクションを表示
             document.getElementById('templateSection').style.display = 'block';
+            loadTemplateOptions(); // テンプレート選択肢を更新
             document.getElementById('templateSection').scrollIntoView({ behavior: 'smooth' });
         }
         
