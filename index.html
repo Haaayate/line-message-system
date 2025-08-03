@@ -402,23 +402,258 @@
             
             .header {
                 padding: 20px;
+                position: relative;
             }
             
             .header h1 {
-                font-size: 2em;
+                font-size: 1.8em;
+                margin-bottom: 15px;
+            }
+            
+            .header div[style*="position: absolute"] {
+                position: static !important;
+                margin-top: 15px;
+                text-align: center;
+            }
+            
+            .manager-tabs {
+                flex-direction: column;
+                gap: 8px;
+                padding: 12px;
+            }
+            
+            .tab-btn {
+                min-width: auto;
+                padding: 18px 20px;
+                font-size: 16px;
+                border-radius: 12px;
+            }
+            
+            .tools-header {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
+                gap: 20px;
+            }
+            
+            .tool-group {
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 15px;
+            }
+            
+            .checkbox-container {
+                flex: 1;
+                min-width: 200px;
+                justify-content: center;
+                padding: 14px 20px;
+            }
+            
+            .reset-btn {
+                padding: 14px 24px;
+                font-size: 15px;
+            }
+            
+            .status-dashboard {
+                justify-content: center;
+                gap: 20px;
+            }
+            
+            .status-card {
+                flex: 1;
+                min-width: 100px;
+                padding: 18px 15px;
+            }
+            
+            .status-number {
+                font-size: 28px;
             }
             
             .liver-select {
                 grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .liver-card {
+                padding: 20px;
+                border-radius: 16px;
+            }
+            
+            .liver-card .sent-checkbox {
+                width: 32px;
+                height: 32px;
+                top: 12px;
+                right: 12px;
+            }
+            
+            .liver-card .sent-checkbox.checked::after {
+                font-size: 18px;
+            }
+            
+            .liver-name {
+                font-size: 1.3em;
+                padding-right: 50px;
+            }
+            
+            .liver-info {
+                font-size: 0.9em;
+                margin-bottom: 8px;
+            }
+            
+            .manager-badge {
+                font-size: 0.8em;
+                padding: 8px 12px;
             }
             
             .step-indicator {
                 flex-direction: column;
-                gap: 20px;
+                gap: 15px;
+                padding: 15px;
             }
             
             .step::after {
                 display: none;
+            }
+            
+            .step-number {
+                width: 35px;
+                height: 35px;
+                font-size: 14px;
+            }
+            
+            .step-title {
+                font-size: 0.85em;
+            }
+            
+            .section {
+                padding: 20px;
+                margin-bottom: 25px;
+            }
+            
+            .section h2 {
+                font-size: 1.5em;
+                margin-bottom: 15px;
+            }
+            
+            .form-group {
+                margin-bottom: 20px;
+            }
+            
+            .btn {
+                padding: 14px 24px;
+                font-size: 15px;
+                margin-bottom: 12px;
+            }
+            
+            .btn-copy {
+                font-size: 16px;
+                padding: 18px 30px;
+            }
+            
+            .message-output {
+                padding: 20px;
+                border-radius: 12px;
+            }
+            
+            .message-preview {
+                padding: 15px;
+                font-size: 15px;
+                line-height: 1.7;
+            }
+            
+            .data-status {
+                padding: 12px;
+                margin-bottom: 15px;
+            }
+            
+            .data-status .data-info {
+                font-size: 0.85em;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .main-content {
+                padding: 15px;
+            }
+            
+            .header {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.6em;
+            }
+            
+            .section {
+                padding: 15px;
+                border-radius: 12px;
+            }
+            
+            .manager-tabs {
+                padding: 8px;
+            }
+            
+            .tab-btn {
+                padding: 15px 16px;
+                font-size: 14px;
+            }
+            
+            .tab-btn .count {
+                font-size: 11px;
+                padding: 1px 6px;
+            }
+            
+            .management-tools {
+                padding: 20px 15px;
+            }
+            
+            .tools-title {
+                font-size: 16px;
+            }
+            
+            .checkbox-container {
+                min-width: auto;
+                width: 100%;
+                padding: 12px 16px;
+            }
+            
+            .checkbox-label {
+                font-size: 14px;
+            }
+            
+            .reset-btn {
+                width: 100%;
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+            
+            .status-dashboard {
+                gap: 12px;
+            }
+            
+            .status-card {
+                padding: 15px 12px;
+            }
+            
+            .status-number {
+                font-size: 24px;
+            }
+            
+            .status-label {
+                font-size: 11px;
+            }
+            
+            .liver-card {
+                padding: 18px;
+            }
+            
+            .liver-name {
+                font-size: 1.2em;
+                padding-right: 45px;
+            }
+            
+            .liver-info {
+                font-size: 0.85em;
             }
         }
     </style>
@@ -495,27 +730,55 @@
                 
                 <!-- 管理人タブ -->
                 <div class="manager-tabs" id="managerTabs">
-                    <button class="tab-btn active" data-manager="all">全て (<span id="countAll">0</span>)</button>
-                    <button class="tab-btn" data-manager="管理人1">管理人1 (<span id="countManager1">0</span>)</button>
-                    <button class="tab-btn" data-manager="管理人2">管理人2 (<span id="countManager2">0</span>)</button>
+                    <button class="tab-btn active" data-manager="all">
+                        🌟 全て
+                        <span class="count" id="countAll">0</span>
+                    </button>
+                    <button class="tab-btn" data-manager="管理人1">
+                        👤 管理人1
+                        <span class="count" id="countManager1">0</span>
+                    </button>
+                    <button class="tab-btn" data-manager="管理人2">
+                        👤 管理人2
+                        <span class="count" id="countManager2">0</span>
+                    </button>
                 </div>
                 
                 <!-- 送信管理ツール -->
                 <div class="management-tools">
-                    <div class="tool-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="hideSentLivers">
-                            <span class="checkmark"></span>
-                            送信済みを非表示
-                        </label>
-                        <button class="btn btn-small" onclick="resetSentStatus()">🔄 送信状況リセット</button>
+                    <div class="tools-header">
+                        <div class="tools-title">
+                            📋 送信管理
+                        </div>
+                        <div class="tool-group">
+                            <div class="checkbox-container">
+                                <label class="checkbox-label">
+                                    <div class="custom-checkbox">
+                                        <input type="checkbox" id="hideSentLivers">
+                                        <span class="checkmark"></span>
+                                    </div>
+                                    送信済みを非表示
+                                </label>
+                            </div>
+                            <button class="reset-btn" onclick="resetSentStatus()">
+                                🔄 リセット
+                            </button>
+                        </div>
                     </div>
-                    <div class="status-info">
-                        送信済み: <span id="sentCount">0</span>件 / 未送信: <span id="unsentCount">0</span>件
+                    
+                    <div class="status-dashboard">
+                        <div class="status-card sent">
+                            <span class="status-number" id="sentCount">0</span>
+                            <span class="status-label">送信済み</span>
+                        </div>
+                        <div class="status-card unsent">
+                            <span class="status-number" id="unsentCount">0</span>
+                            <span class="status-label">未送信</span>
+                        </div>
                     </div>
                 </div>
                 
-                <p style="color: #666; margin-bottom: 20px;">送信したいライバーをクリックして選択してください</p>
+                <p style="color: #666; margin-bottom: 25px; font-size: 1.05em;">💌 送信したいライバーをクリックして選択してください</p>
                 <div class="liver-select" id="liverSelect">
                     <!-- ライバーカードがここに表示されます -->
                 </div>
