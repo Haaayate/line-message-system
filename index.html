@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公式LINE個別送信システム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .main-content {
+            padding: 40px;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border-left: 5px solid #0072ff;
+        }
+        
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            font-weight: 500;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            outline: none;
+            border-color: #0072ff;
+            box-shadow: 0 0 0 3px rgba(0, 114, 255, 0.1);
+        }
+        
+        .form-group textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        }
+        
+        .btn-copy {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            font-size: 18px;
+            padding: 20px 40px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #0072ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .liver-select {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .liver-card {
+            background: white;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .liver-card:hover {
+            border-color: #0072ff;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        
+        .liver-card.selected {
+            border-color: #0072ff;
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 114, 255, 0.2);
+        }
+        
+        .liver-card .liver-name {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .liver-card .liver-info {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .liver-card .manager-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .manager-1 {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        
+        .manager-2 {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+        
+        .message-output {
+            background: white;
+            border: 2px solid #0072ff;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 20px;
+            position: relative;
+        }
+        
+        .message-preview {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            white-space: pre-wrap;
+            font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif;
+            line-height: 1.6;
+            border-left: 4px solid #0072ff;
+            min-height: 100px;
+        }
+        
+        .variable-highlight {
+            background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            color: #2d3436;
+        }
+        
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        
+        .step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+        
+        .step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            right: -50%;
+            width: 100%;
+            height: 2px;
+            background: #e1e5e9;
+            z-index: 1;
+        }
+        
+        .step.completed::after {
+            background: #0072ff;
+        }
+        
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e1e5e9;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            font-weight: 600;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .step.completed .step-number {
+            background: #0072ff;
+            color: white;
+        }
+        
+        .step.active .step-number {
+            background: #0072ff;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .step-title {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #666;
+        }
+        
+        .step.completed .step-title,
+        .step.active .step-title {
+            color: #0072ff;
+        }
+        
+        .error-message {
+            background: #ffe6e6;
+            color: #d63031;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 10px;
+            border-left: 4px solid #d63031;
+        }
+        
+        .success-message {
+            background: #e6ffe6;
+            color: #00b894;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 10px;
+            border-left: 4px solid #00b894;
+        }
+        
+        .data-status {
+            background: white;
+            border: 2px solid #28a745;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .data-status h3 {
+            color: #28a745;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .data-status .data-info {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .copy-success {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #00b894;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+        }
+        
+        .copy-success.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .liver-select {
+                grid-template-columns: 1fr;
+            }
+            
+            .step-indicator {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .step::after {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📱 公式LINE個別送信システム</h1>
+            <p>ライバー選択→メッセージ生成→コピー送信</p>
+        </div>
+        
+        <div class="main-content">
+            <!-- データ保存状況 -->
+            <div class="data-status" id="dataStatus">
+                <h3>✅ データ読み込み済み</h3>
+                <div class="data-info">
+                    <span id="dataCount"></span> | 
+                    読み込み日時: <span id="dataDate"></span>
+                </div>
+                <button class="btn btn-danger" onclick="clearSavedData()" style="margin-top: 10px; padding: 8px 16px; font-size: 14px;">
+                    🗑️ データをクリア
+                </button>
+            </div>
+            
+            <!-- ステップインジケーター -->
+            <div class="step-indicator">
+                <div class="step active" id="step1">
+                    <div class="step-number">1</div>
+                    <div class="step-title">データ読み込み</div>
+                </div>
+                <div class="step" id="step2">
+                    <div class="step-number">2</div>
+                    <div class="step-title">ライバー選択</div>
+                </div>
+                <div class="step" id="step3">
+                    <div class="step-number">3</div>
+                    <div class="step-title">メッセージ生成</div>
+                </div>
+                <div class="step" id="step4">
+                    <div class="step-number">4</div>
+                    <div class="step-title">コピー送信</div>
+                </div>
+            </div>
+            
+            <!-- Step 1: データ取得セクション -->
+            <div class="section" id="dataSection">
+                <h2>📊 Step 1: スプレッドシートデータ読み込み</h2>
+                <div class="form-group">
+                    <label for="spreadsheetUrl">スプレッドシートURL（CSV形式）</label>
+                    <input type="url" id="spreadsheetUrl" placeholder="https://docs.google.com/spreadsheets/d/.../export?format=csv&gid=0">
+                    <small style="color: #666; margin-top: 5px; display: block;">
+                        スプレッドシートを「ウェブに公開」→「CSV」で公開してURLを取得してください
+                    </small>
+                </div>
+                <button class="btn" onclick="loadSpreadsheetData()">データを読み込み</button>
+                <button class="btn btn-success" onclick="loadSavedData()" id="loadSavedBtn" style="display: none;">
+                    💾 保存済みデータを使用
+                </button>
+                
+                <div id="loadingSection" class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>データを読み込み中...</p>
+                </div>
+            </div>
+            
+            <!-- Step 2: ライバー選択セクション -->
+            <div class="section" id="liverSection" style="display: none;">
+                <h2>👥 Step 2: ライバー選択</h2>
+                <p style="color: #666; margin-bottom: 20px;">送信したいライバーをクリックして選択してください</p>
+                <div class="liver-select" id="liverSelect">
+                    <!-- ライバーカードがここに表示されます -->
+                </div>
+            </div>
+            
+            <!-- Step 3: メッセージテンプレート設定 -->
+            <div class="section" id="templateSection" style="display: none;">
+                <h2>✉️ Step 3: メッセージテンプレート設定</h2>
+                <div class="form-group">
+                    <label for="messageTemplate">メッセージテンプレート</label>
+                    <textarea id="messageTemplate" placeholder="メッセージテンプレートを入力してください">
+{ライバー名}さん、お疲れ様です！
+
+7月のダイヤモンド数は{7月ダイヤモンド数}個でした。
+素晴らしい成果ですね🎉
+
+8月の目標は{目標値}個です。
+引き続き頑張りましょう！
+
+何かサポートが必要でしたら、いつでもお声がけください💪</textarea>
+                    <small style="color: #666; margin-top: 5px; display: block;">
+                        {ライバー名}、{7月ダイヤモンド数}、{目標値} を使用して可変部分を指定できます
+                    </small>
+                </div>
+                <button class="btn btn-success" onclick="generateMessage()">メッセージを生成</button>
+            </div>
+            
+            <!-- Step 4: 生成されたメッセージ表示 -->
+            <div class="section" id="messageSection" style="display: none;">
+                <h2>📤 Step 4: 生成されたメッセージ</h2>
+                <div class="message-output">
+                    <div class="copy-success" id="copySuccess">📋 コピーしました！</div>
+                    <div style="margin-bottom: 15px;">
+                        <strong id="selectedLiverName" style="color: #0072ff; font-size: 1.2em;"></strong>
+                        <span id="selectedLiverManager" style="margin-left: 10px;"></span>
+                    </div>
+                    <div class="message-preview" id="messagePreview">
+                        <!-- 生成されたメッセージがここに表示されます -->
+                    </div>
+                    <button class="btn btn-copy" onclick="copyMessage()">
+                        📋 メッセージをコピー
+                    </button>
+                    <button class="btn" onclick="selectAnotherLiver()">
+                        🔄 別のライバーを選択
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let spreadsheetData = [];
+        let selectedLiver = null;
+        let currentStep = 1;
+        
+        // ページ読み込み時に保存されたデータをチェック
+        window.onload = function() {
+            checkSavedData();
+            loadSavedTemplate();
+        };
+        
+        function checkSavedData() {
+            const savedData = JSON.parse(sessionStorage.getItem('spreadsheetData') || 'null');
+            const savedDate = sessionStorage.getItem('spreadsheetDataDate');
+            
+            if (savedData && savedData.length > 0) {
+                document.getElementById('loadSavedBtn').style.display = 'inline-block';
+                document.getElementById('dataStatus').style.display = 'block';
+                document.getElementById('dataCount').textContent = `${savedData.length}件のライバーデータ`;
+                document.getElementById('dataDate').textContent = new Date(savedDate).toLocaleString('ja-JP');
+            }
+        }
+        
+        function saveData(data) {
+            sessionStorage.setItem('spreadsheetData', JSON.stringify(data));
+            sessionStorage.setItem('spreadsheetDataDate', new Date().toISOString());
+            checkSavedData();
+        }
+        
+        function loadSavedData() {
+            const savedData = JSON.parse(sessionStorage.getItem('spreadsheetData') || 'null');
+            if (savedData && savedData.length > 0) {
+                spreadsheetData = savedData;
+                displayLivers(savedData);
+                completeStep(1);
+                activateStep(2);
+                showSuccess(`保存済みデータを読み込みました（${savedData.length}件）`);
+            }
+        }
+        
+        function clearSavedData() {
+            if (confirm('保存されたデータを削除しますか？\n次回は再度スプレッドシートから読み込む必要があります。')) {
+                sessionStorage.removeItem('spreadsheetData');
+                sessionStorage.removeItem('spreadsheetDataDate');
+                document.getElementById('loadSavedBtn').style.display = 'none';
+                document.getElementById('dataStatus').style.display = 'none';
+                
+                // リセット
+                document.getElementById('liverSection').style.display = 'none';
+                document.getElementById('templateSection').style.display = 'none';
+                document.getElementById('messageSection').style.display = 'none';
+                resetStepsFrom(1);
+                activateStep(1);
+                
+                showSuccess('保存データを削除しました');
+            }
+        }
+        
+        function saveTemplate() {
+            const template = document.getElementById('messageTemplate').value;
+            sessionStorage.setItem('messageTemplate', template);
+        }
+        
+        function loadSavedTemplate() {
+            const savedTemplate = sessionStorage.getItem('messageTemplate');
+            if (savedTemplate) {
+                document.getElementById('messageTemplate').value = savedTemplate;
+            }
+        }
+        
+        async function loadSpreadsheetData() {
+            const url = document.getElementById('spreadsheetUrl').value.trim();
+            
+            if (!url) {
+                showError('スプレッドシートURLを入力してください');
+                return;
+            }
+            
+            document.getElementById('loadingSection').style.display = 'block';
+            
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('データの取得に失敗しました');
+                }
+                
+                const csvText = await response.text();
+                const parsedData = parseCSV(csvText);
+                
+                if (parsedData.length === 0) {
+                    throw new Error('有効なデータが見つかりませんでした');
+                }
+                
+                spreadsheetData = parsedData;
+                saveData(parsedData); // データを保存
+                displayLivers(parsedData);
+                
+                // ステップ進行
+                completeStep(1);
+                activateStep(2);
+                
+                showSuccess(`${parsedData.length}件のライバーデータを読み込み、保存しました`);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showError('データの読み込みに失敗しました: ' + error.message);
+            } finally {
+                document.getElementById('loadingSection').style.display = 'none';
+            }
+        }
+        
+        function parseCSV(csvText) {
+            const lines = csvText.split('\n').filter(line => line.trim());
+            const data = [];
+            
+            // ヘッダー行をスキップして2行目から開始
+            for (let i = 1; i < lines.length; i++) {
+                const cells = parseCSVLine(lines[i]);
+                
+                // D列(3), E列(4), J列(9), M列(12) のデータを取得
+                if (cells.length > 12 && cells[3] && cells[3].trim()) {
+                    const liverName = cells[3].trim();
+                    const manager = cells[4] ? cells[4].trim() : '';
+                    const julyDiamonds = cells[9] ? cells[9].trim() : '';
+                    const targetValue = cells[12] ? cells[12].trim() : '';
+                    
+                    if (liverName) {
+                        data.push({
+                            liverName,
+                            manager,
+                            julyDiamonds,
+                            targetValue
+                        });
+                    }
+                }
+            }
+            
+            return data;
+        }
+        
+        function parseCSVLine(line) {
+            const cells = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    cells.push(current);
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            
+            cells.push(current);
+            return cells;
+        }
+        
+        function displayLivers(data) {
+            const container = document.getElementById('liverSelect');
+            container.innerHTML = '';
+            
+            data.forEach((liver, index) => {
+                const card = document.createElement('div');
+                card.className = 'liver-card';
+                card.onclick = () => selectLiver(liver, card);
+                
+                const managerClass = liver.manager === '管理人1' ? 'manager-1' : 'manager-2';
+                
+                card.innerHTML = `
+                    <div class="liver-name">${liver.liverName}</div>
+                    <div class="liver-info">7月ダイヤモンド: ${liver.julyDiamonds || '未設定'}</div>
+                    <div class="liver-info">目標値: ${liver.targetValue || '未設定'}</div>
+                    <div class="manager-badge ${managerClass}">${liver.manager || '未設定'}</div>
+                `;
+                
+                container.appendChild(card);
+            });
+            
+            document.getElementById('liverSection').style.display = 'block';
+        }
+        
+        function selectLiver(liver, cardElement) {
+            // 既存の選択をクリア
+            document.querySelectorAll('.liver-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // 新しい選択を設定
+            cardElement.classList.add('selected');
+            selectedLiver = liver;
+            
+            // ステップ進行
+            completeStep(2);
+            activateStep(3);
+            
+            // テンプレートセクションを表示
+            document.getElementById('templateSection').style.display = 'block';
+            document.getElementById('templateSection').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function generateMessage() {
+            if (!selectedLiver) {
+                showError('まずライバーを選択してください');
+                return;
+            }
+            
+            const template = document.getElementById('messageTemplate').value;
+            if (!template.trim()) {
+                showError('メッセージテンプレートを入力してください');
+                return;
+            }
+            
+            saveTemplate(); // テンプレートを保存
+            
+            const message = template
+                .replace(/{ライバー名}/g, selectedLiver.liverName)
+                .replace(/{7月ダイヤモンド数}/g, selectedLiver.julyDiamonds || '未設定')
+                .replace(/{目標値}/g, selectedLiver.targetValue || '未設定');
+            
+            // メッセージを表示
+            document.getElementById('selectedLiverName').textContent = selectedLiver.liverName + 'さん宛';
+            
+            const managerBadge = selectedLiver.manager ? 
+                `<span class="manager-badge ${selectedLiver.manager === '管理人1' ? 'manager-1' : 'manager-2'}">${selectedLiver.manager}</span>` : 
+                '<span class="manager-badge" style="background:#eee;color:#666;">未設定</span>';
+            document.getElementById('selectedLiverManager').innerHTML = managerBadge;
+            
+            document.getElementById('messagePreview').innerHTML = highlightVariables(message);
+            
+            // ステップ進行
+            completeStep(3);
+            activateStep(4);
+            
+            // メッセージセクションを表示
+            document.getElementById('messageSection').style.display = 'block';
+            document.getElementById('messageSection').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function copyMessage() {
+            const messageText = document.getElementById('messagePreview').textContent;
+            
+            navigator.clipboard.writeText(messageText).then(() => {
+                // コピー成功の表示
+                const copySuccess = document.getElementById('copySuccess');
+                copySuccess.classList.add('show');
+                setTimeout(() => {
+                    copySuccess.classList.remove('show');
+                }, 2000);
+                
+                completeStep(4);
+                showSuccess('メッセージをコピーしました！LINEに貼り付けて送信してください。');
+            }).catch(() => {
+                showError('コピーに失敗しました');
+            });
+        }
+        
+        function selectAnotherLiver() {
+            // 選択をリセット
+            document.querySelectorAll('.liver-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            selectedLiver = null;
+            
+            // セクションを非表示
+            document.getElementById('templateSection').style.display = 'none';
+            document.getElementById('messageSection').style.display = 'none';
+            
+            // ステップをリセット
+            resetStepsFrom(2);
+            activateStep(2);
+            
+            // ライバー選択セクションにスクロール
+            document.getElementById('liverSection').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function highlightVariables(message) {
+            return message
+                .replace(/({[^}]+})/g, '<span class="variable-highlight">$1</span>');
+        }
+        
+        function completeStep(stepNumber) {
+            const step = document.getElementById(`step${stepNumber}`);
+            step.classList.remove('active');
+            step.classList.add('completed');
+        }
+        
+        function activateStep(stepNumber) {
+            // 全てのactiveを削除
+            document.querySelectorAll('.step').forEach(step => {
+                step.classList.remove('active');
+            });
+            
+            const step = document.getElementById(`step${stepNumber}`);
+            step.classList.add('active');
+            currentStep = stepNumber;
+        }
+        
+        function resetStepsFrom(stepNumber) {
+            for (let i = stepNumber; i <= 4; i++) {
+                const step = document.getElementById(`step${i}`);
+                step.classList.remove('completed', 'active');
+            }
+        }
+        
+        function showError(message) {
+            const existing = document.querySelector('.error-message');
+            if (existing) existing.remove();
+            
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+            
+            const container = document.querySelector('.main-content');
+            container.insertBefore(errorDiv, container.firstChild);
+            
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+        
+        function showSuccess(message) {
+            const existing = document.querySelector('.success-message');
+            if (existing) existing.remove();
+            
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success-message';
+            successDiv.textContent = message;
+            
+            const container = document.querySelector('.main-content');
+            container.insertBefore(successDiv, container.firstChild);
+            
+            setTimeout(() => successDiv.remove(), 3000);
+        }
+    </script>
+</body>
+</html>
